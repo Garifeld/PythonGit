@@ -1,6 +1,6 @@
 import sys
-from PyQt5 import QtGui,QtCore
 from PyQt5.QtWidgets import *
+from PyQt5 import QtGui, QtSvg,QtXml,QtCore
 #QMainWindow,QApplication, QWidget,QLabel,QPushButton
 
 class Window(QMainWindow):
@@ -47,6 +47,7 @@ class Window(QMainWindow):
 
         hbox = QVBoxLayout(mainwidget)
         self.svgTreeView = QTreeView(self)
+        self.svgTreeView.setHeaderHidden(True)
         self.actionPane = QFrame(self)
         self.actionPane.setFrameShape(QFrame.StyledPanel)
         self.PropertyPane = QFrame(self)
@@ -82,8 +83,58 @@ class Window(QMainWindow):
     def home(self):
         self.populateTreeView()
         self.show()
-
+        
+    def Treeselectionchanged(self,added,deleted):
+        global addstored
+        addstored = added
+        print("Selection has changed:")
+        print("added "+repr(added))
+        print("deleted "+repr(deleted))
+        
     def populateTreeView(self):
+        doc = QtXml.QDomDocument("animated_123");
+        file= QtCore.QFile("animated_123.svg");
+        #if (not file.open(QtCore.QIODevice.ReadOnly)):
+        doc.setContent(file);
+        ##    file.close();
+        #    return;
+        file.close();
+        
+        docElem = doc.documentElement();
+        
+        N = docElem#.firstChild();
+        n=N
+        #n.toElement().QIt  = QtGui.QStandardItem("Godfather")
+        depth = 0
+        model = QtGui.QStandardItemModel();
+        curIt = QtGui.QStandardItem("My File");
+        model.setItem(0,curIt)
+        self.svgTreeView.setModel(model)
+        self.svgTreeView.selectionModel().selectionChanged.connect(lambda a,d:self.Treeselectionchanged(a, d))
+        #connect(lambda x:print("succ"))
+        while(not n.isNull()):
+            e = n.toElement();# try to convert the node to an element.
+            if(not n.isNull()):
+                print("."*depth+e.tagName())
+                nextIt = QtGui.QStandardItem(e.tagName());
+                curIt.appendRow(nextIt);
+                curIt=nextIt
+            if n.hasChildNodes():
+                n = n.firstChild()
+                depth+=1
+            else:
+                # make sure that curit points to the parent of n
+                while not n.isNull() and n.nextSibling().isNull():
+                    depth-=1
+                    n=n.parentNode()
+                    curIt=curIt.parent()
+                if n.isNull():
+                    break;
+                n=n.nextSibling()
+                curIt=curIt.parent()
+    
+
+    def populateTreeViewOld(self):
         model = QtGui.QStandardItemModel(0, 1, self)
         model.setHeaderData(0, 0, "title")
         self.svgTreeView.setModel(model)
